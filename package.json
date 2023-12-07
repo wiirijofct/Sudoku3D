@@ -1,0 +1,18 @@
+{
+  "name": "sudoku",
+  "version": "1.0.0",
+  "description": "3D sudoku game for browser with illumination and physics (maybe)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "wiirijo",
+  "license": "ISC",
+  "dependencies": {
+    "three": "^0.159.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.55.0",
+    "nodemon": "^3.0.2"
+  }
+}

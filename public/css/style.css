@@ -4,6 +4,7 @@ body, html {
 body {
     /*display: flex;*/
     margin: 0px;
+    padding: 0;
     overflow: hidden; /*  Disable scrollbars */
     background-color: black;
 }

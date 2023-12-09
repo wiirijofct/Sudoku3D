@@ -2,9 +2,10 @@
   "name": "sudoku",
   "version": "1.0.0",
   "description": "3D sudoku game for browser with illumination and physics (maybe)",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "vite build"
   },
   "author": "wiirijo",
   "license": "ISC",
@@ -13,6 +14,7 @@
   },
   "devDependencies": {
     "eslint": "^8.55.0",
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.2",
+    "vite": "^5.0.7"
   }
 }

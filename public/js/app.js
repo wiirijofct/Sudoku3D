@@ -63,6 +63,7 @@ function initGraphics() {
 
     let solved = SUDO.generateSolvedSudoku();
     let sudo = new SUDO.generateSudoku(solved, 10);
+    let sudoShuffle = new SUDO.shuffleSudoku(sudo);
     SUDO.printGrid(sudo);
 
     stats = new Stats();

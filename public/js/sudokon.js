@@ -115,4 +115,20 @@ function generateSudoku(grid , numToRemove){
     return grid;
 }
 
-export { generateSudoku , printGrid , solveSudoku , generateSolvedSudoku };
+function shuffleSudoku(grid){
+    for (let i = 0; i < 100; i++) {
+        let blockRow = Math.floor(Math.random() * 3)*3; // 0, 3, 6
+        let r1 = blockRow + Math.floor(Math.random() * 3); //random row in block
+        let r2 = blockRow + Math.floor(Math.random() * 3);
+        [grid[r1], grid[r2]] = [grid[r2], grid[r1]] //swap rows
+
+        let blockCol = Math.floor(Math.random() * 3)*3; // 0, 3, 6
+        let c1 = blockCol + Math.floor(Math.random() * 3); //random col in block
+        let c2 = blockCol + Math.floor(Math.random() * 3);
+        for(let i = 0; i < 9; i++){
+            [grid[i][c1], grid[i][c2]] = [grid[i][c2], grid[i][c1]] //swap cols
+        }
+    }
+}
+
+export { generateSudoku , printGrid , solveSudoku , generateSolvedSudoku, shuffleSudoku };

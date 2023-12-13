@@ -1,15 +1,56 @@
 import * as THREE from 'three';
 import * as SUDO from './sudokon.js';
+import * as SUDO2 from './sudoku2.js';
 
 import Stats from 'three/addons/libs/stats.module.js';
 
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+
 let contentWidth = window.innerWidth;
 let contentHeight = window.innerHeight;
 
-let camera, scene, renderer, stats;
+let camera, scene, renderer, stats, tGroup, textMesh1, textGeo, materials;
+
+let text = 'S',
+
+    bevelEnabled = false,
+
+    font = undefined,
+
+    fontName = 'optimer', // helvetiker, optimer, gentilis, droid sans, droid serif
+    fontWeight = 'bold'; // normal bold
+
+const height = 0.05,
+    size = 0.15,
+    hover = 1,
+
+    curveSegments = 2,
+
+    bevelThickness = 2,
+    bevelSize = 1.5;
+
+// const mirror = true;
+
+const fontMap = {
+
+    'helvetiker': 0,
+    'optimer': 1,
+    'gentilis': 2,
+    'droid/droid_sans': 3,
+    'droid/droid_serif': 4
+
+};
+
+const weightMap = {
+
+    'regular': 0,
+    'bold': 1
+
+};
 
 window.onload = function() {
     init();
@@ -56,16 +97,28 @@ function initGraphics() {
     // pontualLight(-0.5, 0.7, 0.5);
     // directionalLight(0, 1, 0);
     ambientLight();
+
+    materials = [
+        new THREE.MeshPhongMaterial( { color: 0xffffff, flatShading: true } ), // front
+        new THREE.MeshPhongMaterial( { color: 0xffffff } ) // side
+    ];
     
     grid();
-    // big3b3Grid();
+    
+    
+    let sudokuGrid = SUDO2.createEmptySudoku();
+    console.log("Initialized grid:", JSON.parse(JSON.stringify(sudokuGrid)));
+    
+    SUDO2.fillDiagonal(sudokuGrid);
+    console.log("Grid after filling diagonals:", JSON.parse(JSON.stringify(sudokuGrid)));
+    SUDO2.fillRemaining(sudokuGrid, 0, 3);
+    SUDO2.printGrid(sudokuGrid);
+    
+    tGroup = new THREE.Group();
+    
+    loadFont();
+    
     //stats
-
-    let solved = SUDO.generateSolvedSudoku();
-    let sudo = new SUDO.generateSudoku(solved, 10);
-    let sudoShuffle = new SUDO.shuffleSudoku(sudo);
-    SUDO.printGrid(sudo);
-
     stats = new Stats();
     document.body.appendChild( stats.dom );
     stats.domElement.style.position = 'absolute';
@@ -200,6 +253,75 @@ function grid(){
             scene.add(newGroup);
         }
     }
+
+}
+
+function loadFont() {
+
+    const loader = new FontLoader();
+    loader.load( 'fonts/' + fontName + '_' + fontWeight + '.typeface.json', function ( response ) {
+
+        font = response;
+
+        refreshText();
+
+    } );
+
+}
+
+function createText() {
+
+    textGeo = new TextGeometry( text, {
+
+        font: font,
+
+        size: size,
+        height: height,
+        curveSegments: curveSegments,
+
+        bevelThickness: bevelThickness,
+        bevelSize: bevelSize,
+        bevelEnabled: bevelEnabled
+
+    } );
+
+    textGeo.computeBoundingBox();
+    // textGeo.computeVertexNormals();
+
+    textMesh1 = new THREE.Mesh( textGeo, materials );
+
+    textMesh1.position.x = 0;
+    textMesh1.position.y = 0;
+    textMesh1.position.z = 0;
+
+    scene.add( textMesh1 );
+    // group.add( textMesh1 );
+
+
+    // if ( mirror ) {
+
+    //     textMesh2 = new THREE.Mesh( textGeo, materials );
+
+    //     textMesh2.position.x = centerOffset;
+    //     textMesh2.position.y = - hover;
+    //     textMesh2.position.z = height;
+
+    //     textMesh2.rotation.x = Math.PI;
+    //     textMesh2.rotation.y = Math.PI * 2;
+
+    //     group.add( textMesh2 );
+
+    // }
+}
+
+function refreshText() {
+
+    tGroup.remove( textMesh1 );
+    // if ( mirror ) group.remove( textMesh2 );
+
+    if ( ! text ) return;
+
+    createText();
 
 }
 

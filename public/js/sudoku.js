@@ -188,5 +188,44 @@ function solveSudoku(grid){
     return false;
 }
 
+// Easy: 62 filled squares / 19 empty squares
 
-export { createEmptySudoku , printGrid , fillDiagonal, fillBlockRandom, solveSudoku, fillRemaining, removeKDigits, transpose};
+// Medium: 53 filled squares / 28 empty squares
+
+// Hard: 44 filled squares / 37 empty squares
+
+// Very hard: 35 filled squares / 46 empty squares
+
+// Extremely hard: 26 filled squares / 55 empty squares
+
+// Inhuman: 17 filled squares / 64 empty squares
+function createSudoku(difficulty){
+    let grid = createEmptySudoku();
+    fillDiagonal(grid);
+    fillRemaining(grid, 0, 3);
+    let filledGrid = grid.map((row) => row.slice());
+    
+    if(difficulty === "easy"){
+        removeKDigits(grid, 19);
+    }
+    else if(difficulty === "medium"){
+        removeKDigits(grid, 28);
+    }
+    else if(difficulty === "hard"){
+        removeKDigits(grid, 37);
+    }
+    else if(difficulty === "very hard"){
+        removeKDigits(grid, 46);
+    }
+    else if(difficulty === "extremely hard"){
+        removeKDigits(grid, 55);
+    }
+    else if(difficulty === "inhuman"){
+        removeKDigits(grid, 64);
+    }
+    // removeKDigits(grid, difficulty);
+    return {sudokuGrid: grid, filledGrid: filledGrid};
+}
+
+
+export { createSudoku, createEmptySudoku, printGrid, fillDiagonal, fillBlockRandom, solveSudoku, fillRemaining, removeKDigits, transpose};

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+import { CSS3DRenderer} from 'three/addons/renderers/CSS3DRenderer.js';
 import Stats from 'three/addons/libs/stats.module.js';
 
 let scene, camera, renderer, stats, controls;

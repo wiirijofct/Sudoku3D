@@ -24,25 +24,26 @@ let pendingTextCreations = [];
 const defaultEmissiveColor = 0x000000;
 
 const Tiles = {};
-const letters = 'abcdefghi';
-for (let i = 0; i < 9; i++) {
+const letters = 'abcdefghin';
+for (let i = 0; i < 10; i++) {
     for (let j = 1; j <= 9; j++) {
         const identifier = `${letters[i]}${j}`;
         Tiles[identifier] = null;
     }
 }
 
-function initSudokuGrid() {
+function initSudokuGrid(difficulty) {
     // Initialize Sudoku grid, font loader, and any other related functionalities here
     // ...
     
-    sudoku = SUDO.createSudoku("easy");
+    sudoku = SUDO.createSudoku(difficulty);
     sudokuGrid = sudoku.sudokuGrid;
     filledSudokuGrid = sudoku.filledGrid;
     
     loadFont('helvetiker', 'regular', () => {
         createSudokuGrid(); // This function initializes the grid and creates the initial text meshes
         fillSudokuGrid(sudokuGrid); // This function fills the grid with the actual numbers
+        createNumbersRow();
         wrongCount = 0;
         addErrorCounter();
     });
@@ -272,6 +273,46 @@ function createSudokuGrid() {
     }
     scene.add(bigGridWalls(0, 0, 0));
     scene.add(sudokuGroup);
+}
+
+function createNumbersRow() {
+
+    for(let row = 0; row < 9; row++) {
+        const x = row * 0.2 - 0.2 * 0.64 - 0.64;
+        const z = 1.2;
+        const y = 0;
+
+        const blockGroup = new THREE.Group();
+
+        const block = gridBlock(x, y, z);
+        blockGroup.add(block);
+
+        debugger;
+        const identifier = `n${row + 1}`;
+
+        const floorTile = block.children[0];
+        Tiles[identifier] = {
+            floor: floorTile, // assuming 'floor' is your tile mesh
+            textMesh: null, // will be set later when the text is created
+            noteGrid: null,
+            noteGridElement: null
+        };
+
+        createText((row + 1).toString(), x - 0.0625, y, z + 0.07, { size: 0.15, height: 0.035, color: 0x000000 }, identifier);
+
+        floorTile.updateMatrixWorld(true);
+        const worldPosition = new THREE.Vector3();
+        floorTile.getWorldPosition(worldPosition);
+
+        const floorTileClone = floorTile.clone();
+        floorTileClone.position.copy(worldPosition);
+        floorTileClone.userData.identifier = identifier;
+        floorTileClone.userData.originalEmissive = defaultEmissiveColor;
+        floorTileClone.userData.originalEmissiveIntensity = floorTileClone.material.emissiveIntensity;
+        Tiles[floorTileClone.userData.identifier].floor = floorTileClone;
+        objects.push(floorTileClone)
+        scene.add(blockGroup);
+    }
 }
 
 // A function to get the identifier for the block, given its row and column
@@ -552,10 +593,15 @@ function addNoteToSelectedTile(number) {
     const row = Math.floor((number - 1) / 3);
     const col = (number - 1) % 3;
     const noteId = `note-${row}-${col}`;
-    console.log(`Adding note: ${number}`);
     const noteElement = Tiles[selectedTile.userData.identifier].noteGridElement.querySelector(`#${noteId}`);
     if (noteElement) {
+        // If the note already has the number, remove it
+        if (noteElement.textContent === number.toString()) {
+            noteElement.textContent = '';
+            return;
+        }
         noteElement.textContent = number.toString();
+        selectedTile = null;
     } else {
         console.log('Note element not found:', noteId);
     }

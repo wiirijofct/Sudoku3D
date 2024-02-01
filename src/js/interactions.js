@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { scene, camera, renderer } from './scene-setup.js';
+import { scene, camera, renderer, controls, controlsCSS } from './scene-setup.js';
 import { selectedTile, selectTile, resetTile, clearSelectedTile, fillSelectedTile, highlightNumber, resetHighlight, objects, Tiles, getBlockIdentifier} from './sudoku-grid.js';
 
 let raycaster, pointer;
@@ -145,6 +145,7 @@ function onDocumentKeyDown(event) {
             else
                 fillSelectedTile(9);
             break;
+        
 
     }
 
@@ -160,4 +161,4 @@ function onDocumentKeyUp(event) {
 
 }
 
-export { initInteractions, raycaster, pointer , rollOverMesh, rollOverMaterial, isShiftDown};
+export { initInteractions, raycaster, pointer , rollOverMesh, rollOverMaterial, isShiftDown, controls, controlsCSS};

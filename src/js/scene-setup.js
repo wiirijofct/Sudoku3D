@@ -1,11 +1,14 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { FirstPersonControls } from 'three/examples/jsm/controls/FirstPersonControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { CSS3DRenderer} from 'three/addons/renderers/CSS3DRenderer.js';
 import Stats from 'three/addons/libs/stats.module.js';
 
-let scene, camera, renderer, stats, controls;
+const clock = new THREE.Clock(); 
+let scene, camera, renderer, stats, controls, controlsCSS;
 let css3DScene, css3DRenderer;
+let OrbitCam = true;
 
 function initScene() {
     
@@ -37,21 +40,27 @@ function initScene() {
 
     // Initialize camera
     camera = new THREE.PerspectiveCamera(70, contentWidth / contentHeight, 0.01, 10);
-    camera.position.y = 1.5;
+    camera.position.y = 2.2;
+    camera.position.z = 0;
+    // camera.rotateOnAxis(new THREE.Vector3(0, 1, 0), Math.PI / 2);
+    camera.rotateX(-Math.PI / 2);
     camera.lookAt(0, 0, 0);
 
 
     // Initialize controls
-    function initOrbitControls(camera, domElement) {
-        const controls = new OrbitControls(camera, domElement);
-        controls.target.set(0, 0, 0);
-        controls.update();
-        controls.enablePan = true;
-        controls.enableDamping = true;
-    }
 
-    initOrbitControls(camera, renderer.domElement);
-    initOrbitControls(camera, css3DRenderer.domElement);
+    controls = initOrbitControls(camera, renderer.domElement);
+    controlsCSS = initOrbitCSSControls(camera, css3DRenderer.domElement);
+
+    // controls handler
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'v' || event.key === 'V') {
+            debugger;
+            changeControls();
+        }
+    }
+    );
 
     // Resize handler
     window.addEventListener('resize', function () {
@@ -73,14 +82,6 @@ function initScene() {
 
     // Initialize lights
 
-    // ambientLight();
-    // directionalLight(0, 0, 1);
-    // directionalLight(0, 0, -1);
-    // directionalLight(1, 0, 0);
-    // directionalLight(-1, 0, 0);
-    // directionalLight(0, 1, 0);
-    // directionalLight(0, -1, 0);
-    // pontualLight(0, 0, 0);
     pontualLight(0, 1.5, 0);
 
     //stats
@@ -112,4 +113,65 @@ function ambientLight() {
     scene.add(light);
 }
 
-export { initScene, scene, camera, renderer, stats, controls, css3DScene, css3DRenderer };
+function initFirstPersonControls(camera, domElement) {
+    controls = new FirstPersonControls(camera, domElement);
+    controls.movementSpeed = 1;
+    controls.lookSpeed = 0.1;
+    controls.lookVertical = true; // Allows looking up and down
+    controls.constrainVertical = false; // Removes vertical constraints
+    // controls.lookAt( scene.position );
+    return controls;
+}
+function initFirstPersonCSSControls(camera, domElement) {
+    controlsCSS = new FirstPersonControls(camera, domElement);
+    controlsCSS.movementSpeed = 1;
+    controlsCSS.lookSpeed = 0.1;
+    controlsCSS.lookVertical = true; // Allows looking up and down
+    controlsCSS.constrainVertical = false; // Removes vertical constraints
+    // controlsCSS.lookAt( scene.position );
+    return controlsCSS;
+}
+
+function initOrbitControls(camera, domElement) {
+    controls = new OrbitControls(camera, domElement);
+    controls.target.set(0, 0, 0);
+    controls.update();
+    controls.enablePan = true;
+    controls.enableDamping = true;
+    return controls;
+}
+
+function initOrbitCSSControls(camera, domElement) {
+    controlsCSS = new OrbitControls(camera, domElement);
+    controlsCSS.target.set(0, 0, 0);
+    controlsCSS.update();
+    controlsCSS.enablePan = true;
+    controlsCSS.enableDamping = true;
+    return controlsCSS;
+}
+
+function changeControls() {
+    if (OrbitCam) {
+        // Dispose of OrbitControls
+        controls.dispose();
+        controlsCSS.dispose();
+        
+        // Initialize FirstPersonControls
+        controls = initFirstPersonControls(camera, renderer.domElement);
+        controlsCSS = initFirstPersonCSSControls(camera, css3DRenderer.domElement);
+
+        OrbitCam = false;
+    } else {
+        // Dispose of FirstPersonControls
+        controls.dispose();
+        controlsCSS.dispose();
+
+        // Initialize OrbitControls
+        controls = initOrbitControls(camera, renderer.domElement);
+        controlsCSS = initOrbitCSSControls(camera, css3DRenderer.domElement);
+
+        OrbitCam = true;
+    }
+}
+
+export { initScene, scene, camera, renderer, stats, controls, controlsCSS, css3DScene, css3DRenderer, OrbitCam, clock};

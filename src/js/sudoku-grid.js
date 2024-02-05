@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as SUDO from './sudoku.js';
-import { scene, css3DScene } from './scene-setup.js';
+import { scene, css3DScene} from './scene-setup.js';
 import { isShiftDown } from './interactions.js';
 
 import {CSS3DObject} from 'three/addons/renderers/CSS3DRenderer.js';
@@ -9,6 +9,7 @@ import TWEEN from 'three/addons/libs/tween.module.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 
+let toggle = false;
 let selectedTile;
 let sudokuGrid, filledSudokuGrid, sudoku;
 
@@ -287,7 +288,6 @@ function createNumbersRow() {
         const block = gridBlock(x, y, z);
         blockGroup.add(block);
 
-        debugger;
         const identifier = `n${row + 1}`;
 
         const floorTile = block.children[0];
@@ -311,6 +311,10 @@ function createNumbersRow() {
         floorTileClone.userData.originalEmissiveIntensity = floorTileClone.material.emissiveIntensity;
         Tiles[floorTileClone.userData.identifier].floor = floorTileClone;
         objects.push(floorTileClone)
+        if (checkCompletedNumber(row + 1)) {
+            floorTileClone.material.color.set(0xffffff);
+            Tiles[identifier].textMesh.material.color.set(0x006400);
+        }
         scene.add(blockGroup);
     }
 }
@@ -361,9 +365,10 @@ function selectTile(tile) {
         return; // Exit the function early
     }
 
-    // Deselect previous tile if any
+    // Deselect previous tile if any and reset the toggle
     if (selectedTile) {
         resetTile(selectedTile);
+        toggle = false;
     }
 
     resetHighlight();
@@ -373,6 +378,13 @@ function selectTile(tile) {
 
     // Retrieve the identifier from the tile's userData
     const identifier = tile.userData.identifier;
+
+    if (identifier[0] === 'n') {
+        toggle = true;
+        const number = parseInt(identifier[1]);
+        highlightNumber(number);
+        return;
+    }
 
     // Parse the identifier to get the row and column
     const row = letters.indexOf(identifier[0]);
@@ -384,7 +396,10 @@ function selectTile(tile) {
     highlightNumber(sudokuGrid[row][col]);
 }
 
+
 function resetTile(tile) {
+    
+    toggle = false;
 
     if (!tile) {
         resetHighlight();
@@ -526,13 +541,60 @@ function fillSelectedTile(number) {
             console.log('Game Over!');
         }
         document.getElementById('error-counter').textContent = wrongCount;
-        document.getElementById('wrongCount').innerHTML = wrongCount;
     }
 
     resetTile(selectedTile);
 
     if (checkSudoku()) {
         alert('Sudoku is done and correct!');
+    }
+}
+
+function fillTile(identifier, number) {
+    const row = letters.indexOf(identifier[0]);
+    const col = parseInt(identifier[1], 10) - 1;
+
+    if (Tiles[identifier].textMesh.userData.assigned)
+        return;
+
+    if (isShiftDown) {
+        if (sudokuGrid[row][col] !== 0) {
+            console.log('Tile already has a number.');
+            return;
+        }
+        addNoteToTile(identifier, number);
+        return;
+    }
+
+    sudokuGrid[row][col] = number;
+    const isCorrect = sudokuGrid[row][col] === filledSudokuGrid[row][col];
+    const textMeshColor = isCorrect ? 0x006400 : 0xFF0000;
+
+    updateTextMesh(identifier, number.toString(), textMeshColor);
+
+    if (sudokuGrid[row][col] !== 0) {
+        hideNotes(identifier);
+        Tiles[identifier].noteGrid.visible = false;
+    }
+
+    if (isCorrect) {
+        console.log('Correct!');
+    } else {
+        console.log('Incorrect!');
+        wrongCount++;
+        if (wrongCount === 3) {
+            console.log('Game Over!');
+        }
+        document.getElementById('error-counter').textContent = wrongCount;
+    }
+
+    if (checkSudoku()) {
+        alert('Sudoku is done and correct!');
+    }
+    if (checkCompletedNumber(number)) {
+        // white floor color: 0xffffff
+        Tiles[`n${number}`].floor.material.color.set(0xffffff);
+        Tiles[`n${number}`].textMesh.material.color.set(0x006400);
     }
 }
 
@@ -607,6 +669,25 @@ function addNoteToSelectedTile(number) {
     }
 }
 
+function addNoteToTile(identifier, number) {
+
+    const row = Math.floor((number - 1) / 3);
+    const col = (number - 1) % 3;
+    const noteId = `note-${row}-${col}`;
+    const noteElement = Tiles[identifier].noteGridElement.querySelector(`#${noteId}`);
+    if (noteElement) {
+        // If the note already has the number, remove it
+        if (noteElement.textContent === number.toString()) {
+            noteElement.textContent = '';
+            return;
+        }
+        noteElement.textContent = number.toString();
+    } else {
+        console.log('Note element not found:', noteId);
+    }
+}
+
+
 function hideNotes(identifier) {
     for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 3; j++) {
@@ -639,7 +720,7 @@ function addErrorCounter() {
     errorCounterObject.rotation.x = -Math.PI / 2;
     errorCounterObject.renderOrder = 1;
     css3DScene.add(errorCounterObject);
-    animateErrorCounter(errorCounterObject, 30000, 1.5);
+    animateErrorCounter(errorCounterObject, 30000, 2);
 }
 
 function updateErrorCounterPosition(angle, radius, errorCounterObject) {
@@ -664,6 +745,21 @@ function animateErrorCounter(errorCounterObject, duration, radius) {
         .start();
 }
 
+function checkCompletedNumber(number) {
+    let count = 0;
+    for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+            const identifier = getBlockIdentifier(row, col);
+            if (sudokuGrid[row][col] === number) {
+                count++;
+                if (count === 9) {
+                    return true;
+                }
+            }
+        }
+    }
+}
+
 function checkSudoku() {
     // Loop through the grid
     for (let row = 0; row < 9; row++) {
@@ -685,4 +781,4 @@ function checkSudoku() {
     return true;
 }
 
-export { initSudokuGrid, selectedTile, objects, Tiles, TWEEN, selectTile, resetTile, clearSelectedTile, fillSelectedTile, highlightNumber, resetHighlight,  getBlockIdentifier};
+export { initSudokuGrid, selectedTile, toggle, objects, Tiles, TWEEN, selectTile, resetTile, clearSelectedTile, fillSelectedTile, fillTile, highlightNumber, resetHighlight,  getBlockIdentifier};

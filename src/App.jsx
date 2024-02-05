@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react';
 import SplineScene from './components/spline-scene.jsx';
 import DifficultyMenu from './components/difficulty-menu.jsx';
+import { initScene, scene, camera, renderer, stats, css3DScene, css3DRenderer, controls, controlsCSS, mapCam, clock} from './js/scene-setup.js';
+import { initInteractions, updateCameraTransition} from './js/interactions.js';
+import { initSudokuGrid, TWEEN } from './js/sudoku-grid.js';
+import Timer from './components/timer.jsx';
 import '../src/style.css';
 import '../src/styles.css';
-import { initScene, scene, camera, renderer, stats, css3DScene, css3DRenderer, controls, controlsCSS, OrbitCam, clock} from './js/scene-setup.js';
-import { initInteractions } from './js/interactions.js';
-import { initSudokuGrid, TWEEN } from './js/sudoku-grid.js';
 
 
 function App() {
 
   const [currentScene, setCurrentScene] = useState('menu'); // 'menu', 'difficulty', 'game'
   const [difficulty, setDifficulty] = useState('easy'); // 'easy', 'medium', 'hard', 'harder', 'extremely hard', 'inhuman'
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+
 
   useEffect(() => {
     
@@ -20,16 +23,20 @@ function App() {
       initSudokuGrid(difficulty);
       initInteractions();
       animate();
+      setIsTimerRunning(true);
+    }else{
+      setIsTimerRunning(false);
     }
   }, [currentScene]); 
+
+  
 
   function animate(time) {
     requestAnimationFrame(animate);
     const delta = clock.getDelta();
     TWEEN.update(time);
-    if(!OrbitCam) {
-        controls.update(delta);
-        controlsCSS.update(delta);
+    if(!mapCam) {
+      updateCameraTransition(delta);
     }
     render();
     stats.update();
@@ -77,6 +84,7 @@ function App() {
     case 'game':
       return (
         <div id="container">
+           <Timer isRunning={isTimerRunning} setIsRunning={setIsTimerRunning} />
           {/* Render your Three.js canvas here */}
         </div>
       );

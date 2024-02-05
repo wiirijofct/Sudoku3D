@@ -1,6 +1,5 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { FirstPersonControls } from 'three/examples/jsm/controls/FirstPersonControls.js';
+import { MapControls } from 'three/examples/jsm/controls/MapControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { CSS3DRenderer} from 'three/addons/renderers/CSS3DRenderer.js';
 import Stats from 'three/addons/libs/stats.module.js';
@@ -8,7 +7,7 @@ import Stats from 'three/addons/libs/stats.module.js';
 const clock = new THREE.Clock(); 
 let scene, camera, renderer, stats, controls, controlsCSS;
 let css3DScene, css3DRenderer;
-let OrbitCam = true;
+let mapCam = true;
 
 function initScene() {
     
@@ -42,21 +41,20 @@ function initScene() {
     camera = new THREE.PerspectiveCamera(70, contentWidth / contentHeight, 0.01, 10);
     camera.position.y = 2.2;
     camera.position.z = 0;
-    // camera.rotateOnAxis(new THREE.Vector3(0, 1, 0), Math.PI / 2);
-    camera.rotateX(-Math.PI / 2);
+    camera.up.set(0, 1, 0);
     camera.lookAt(0, 0, 0);
-
+    scene.add(camera);
 
     // Initialize controls
 
-    controls = initOrbitControls(camera, renderer.domElement);
-    controlsCSS = initOrbitCSSControls(camera, css3DRenderer.domElement);
+    controls = initMapControls(camera, renderer.domElement);
+    controlsCSS = initMapControls(camera, css3DRenderer.domElement);
 
+    controls.update();
     // controls handler
 
     document.addEventListener('keydown', function (event) {
         if (event.key === 'v' || event.key === 'V') {
-            debugger;
             changeControls();
         }
     }
@@ -113,65 +111,54 @@ function ambientLight() {
     scene.add(light);
 }
 
-function initFirstPersonControls(camera, domElement) {
-    controls = new FirstPersonControls(camera, domElement);
-    controls.movementSpeed = 1;
-    controls.lookSpeed = 0.1;
-    controls.lookVertical = true; // Allows looking up and down
-    controls.constrainVertical = false; // Removes vertical constraints
-    // controls.lookAt( scene.position );
-    return controls;
-}
-function initFirstPersonCSSControls(camera, domElement) {
-    controlsCSS = new FirstPersonControls(camera, domElement);
-    controlsCSS.movementSpeed = 1;
-    controlsCSS.lookSpeed = 0.1;
-    controlsCSS.lookVertical = true; // Allows looking up and down
-    controlsCSS.constrainVertical = false; // Removes vertical constraints
-    // controlsCSS.lookAt( scene.position );
-    return controlsCSS;
-}
-
-function initOrbitControls(camera, domElement) {
-    controls = new OrbitControls(camera, domElement);
-    controls.target.set(0, 0, 0);
-    controls.update();
+function initMapControls(camera, domElement) {
+    // set up controls
+    controls = new MapControls(camera, domElement);
     controls.enablePan = true;
-    controls.enableDamping = true;
+
+    // limits
+    controls.minPolarAngle = 0;
+    controls.maxPolarAngle = Math.PI / 2;
+    controls.minAzimuthAngle = -Math.PI / 2;
+    controls.maxAzimuthAngle = Math.PI / 2;
+
+    // configure controls
+    controls.zoomToCursor = true;
+    controls.panSpeed = 0.5;
+    controls.rotateSpeed = 0.5;
+    controls.zoomSpeed = 1.2;
+    controls.minDistance = 0.5;
+    controls.maxDistance = 3;
+    controls.maxTargetRadius = 1.5;
+
     return controls;
 }
 
-function initOrbitCSSControls(camera, domElement) {
-    controlsCSS = new OrbitControls(camera, domElement);
-    controlsCSS.target.set(0, 0, 0);
-    controlsCSS.update();
-    controlsCSS.enablePan = true;
-    controlsCSS.enableDamping = true;
-    return controlsCSS;
-}
 
 function changeControls() {
-    if (OrbitCam) {
+    if (mapCam) {
         // Dispose of OrbitControls
         controls.dispose();
         controlsCSS.dispose();
         
-        // Initialize FirstPersonControls
-        controls = initFirstPersonControls(camera, renderer.domElement);
-        controlsCSS = initFirstPersonCSSControls(camera, css3DRenderer.domElement);
-
-        OrbitCam = false;
+        // Set camera
+        camera.up.set(0, 0, -1);
+        
+        mapCam = false;
     } else {
-        // Dispose of FirstPersonControls
-        controls.dispose();
-        controlsCSS.dispose();
+
+        // set camera
+        camera.position.set(0, 2.2, 0);
+        camera.lookAt(0, 0, 0);
+        camera.up.set(0, 1, 0);
 
         // Initialize OrbitControls
-        controls = initOrbitControls(camera, renderer.domElement);
-        controlsCSS = initOrbitCSSControls(camera, css3DRenderer.domElement);
+        controls = initMapControls(camera, renderer.domElement);
+        controlsCSS = initMapControls(camera, css3DRenderer.domElement);
 
-        OrbitCam = true;
+        mapCam = true;
     }
 }
 
-export { initScene, scene, camera, renderer, stats, controls, controlsCSS, css3DScene, css3DRenderer, OrbitCam, clock};
+
+export { initScene, scene, camera, renderer, stats, controls, controlsCSS, css3DScene, css3DRenderer, mapCam, clock};

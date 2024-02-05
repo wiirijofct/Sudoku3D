@@ -18,7 +18,6 @@ export default function SplineScene({ onMenuOptionClick }) {
 
   const onSplineEvent = (event) => {
     // Check the event type and the name of the object that was interacted with
-    debugger;
     if (event.type === 'mouseDown') {
       const objectId = event.target;
       console.log(`Clicked on object: ${objectId}`);

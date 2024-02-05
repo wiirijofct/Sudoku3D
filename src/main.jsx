@@ -1,7 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
-import SplineScene from './components/spline-scene.jsx'
 import './index.css'
 import './style.css'
 import './styles.css'

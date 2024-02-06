@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as SUDO from './sudoku.js';
-import { scene, css3DScene } from './scene-setup.js';
+import { scene, css3DScene} from './scene-setup.js';
 import { isShiftDown } from './interactions.js';
 
 import {CSS3DObject} from 'three/addons/renderers/CSS3DRenderer.js';
@@ -9,6 +9,7 @@ import TWEEN from 'three/addons/libs/tween.module.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 
+let toggle = false;
 let selectedTile;
 let sudokuGrid, filledSudokuGrid, sudoku;
 
@@ -24,25 +25,26 @@ let pendingTextCreations = [];
 const defaultEmissiveColor = 0x000000;
 
 const Tiles = {};
-const letters = 'abcdefghi';
-for (let i = 0; i < 9; i++) {
+const letters = 'abcdefghin';
+for (let i = 0; i < 10; i++) {
     for (let j = 1; j <= 9; j++) {
         const identifier = `${letters[i]}${j}`;
         Tiles[identifier] = null;
     }
 }
 
-function initSudokuGrid() {
+function initSudokuGrid(difficulty) {
     // Initialize Sudoku grid, font loader, and any other related functionalities here
     // ...
     
-    sudoku = SUDO.createSudoku("easy");
+    sudoku = SUDO.createSudoku(difficulty);
     sudokuGrid = sudoku.sudokuGrid;
     filledSudokuGrid = sudoku.filledGrid;
     
     loadFont('helvetiker', 'regular', () => {
         createSudokuGrid(); // This function initializes the grid and creates the initial text meshes
         fillSudokuGrid(sudokuGrid); // This function fills the grid with the actual numbers
+        createNumbersRow();
         wrongCount = 0;
         addErrorCounter();
     });
@@ -274,6 +276,49 @@ function createSudokuGrid() {
     scene.add(sudokuGroup);
 }
 
+function createNumbersRow() {
+
+    for(let row = 0; row < 9; row++) {
+        const x = row * 0.2 - 0.2 * 0.64 - 0.64;
+        const z = 1.2;
+        const y = 0;
+
+        const blockGroup = new THREE.Group();
+
+        const block = gridBlock(x, y, z);
+        blockGroup.add(block);
+
+        const identifier = `n${row + 1}`;
+
+        const floorTile = block.children[0];
+        Tiles[identifier] = {
+            floor: floorTile, // assuming 'floor' is your tile mesh
+            textMesh: null, // will be set later when the text is created
+            noteGrid: null,
+            noteGridElement: null
+        };
+
+        createText((row + 1).toString(), x - 0.0625, y, z + 0.07, { size: 0.15, height: 0.035, color: 0x000000 }, identifier);
+
+        floorTile.updateMatrixWorld(true);
+        const worldPosition = new THREE.Vector3();
+        floorTile.getWorldPosition(worldPosition);
+
+        const floorTileClone = floorTile.clone();
+        floorTileClone.position.copy(worldPosition);
+        floorTileClone.userData.identifier = identifier;
+        floorTileClone.userData.originalEmissive = defaultEmissiveColor;
+        floorTileClone.userData.originalEmissiveIntensity = floorTileClone.material.emissiveIntensity;
+        Tiles[floorTileClone.userData.identifier].floor = floorTileClone;
+        objects.push(floorTileClone)
+        if (checkCompletedNumber(row + 1)) {
+            floorTileClone.material.color.set(0xffffff);
+            Tiles[identifier].textMesh.material.color.set(0x006400);
+        }
+        scene.add(blockGroup);
+    }
+}
+
 // A function to get the identifier for the block, given its row and column
 function getBlockIdentifier(row, col) {
     const letters = 'abcdefghi';
@@ -320,9 +365,10 @@ function selectTile(tile) {
         return; // Exit the function early
     }
 
-    // Deselect previous tile if any
+    // Deselect previous tile if any and reset the toggle
     if (selectedTile) {
         resetTile(selectedTile);
+        toggle = false;
     }
 
     resetHighlight();
@@ -332,6 +378,13 @@ function selectTile(tile) {
 
     // Retrieve the identifier from the tile's userData
     const identifier = tile.userData.identifier;
+
+    if (identifier[0] === 'n') {
+        toggle = true;
+        const number = parseInt(identifier[1]);
+        highlightNumber(number);
+        return;
+    }
 
     // Parse the identifier to get the row and column
     const row = letters.indexOf(identifier[0]);
@@ -343,7 +396,10 @@ function selectTile(tile) {
     highlightNumber(sudokuGrid[row][col]);
 }
 
+
 function resetTile(tile) {
+    
+    toggle = false;
 
     if (!tile) {
         resetHighlight();
@@ -485,13 +541,60 @@ function fillSelectedTile(number) {
             console.log('Game Over!');
         }
         document.getElementById('error-counter').textContent = wrongCount;
-        document.getElementById('wrongCount').innerHTML = wrongCount;
     }
 
     resetTile(selectedTile);
 
     if (checkSudoku()) {
         alert('Sudoku is done and correct!');
+    }
+}
+
+function fillTile(identifier, number) {
+    const row = letters.indexOf(identifier[0]);
+    const col = parseInt(identifier[1], 10) - 1;
+
+    if (Tiles[identifier].textMesh.userData.assigned)
+        return;
+
+    if (isShiftDown) {
+        if (sudokuGrid[row][col] !== 0) {
+            console.log('Tile already has a number.');
+            return;
+        }
+        addNoteToTile(identifier, number);
+        return;
+    }
+
+    sudokuGrid[row][col] = number;
+    const isCorrect = sudokuGrid[row][col] === filledSudokuGrid[row][col];
+    const textMeshColor = isCorrect ? 0x006400 : 0xFF0000;
+
+    updateTextMesh(identifier, number.toString(), textMeshColor);
+
+    if (sudokuGrid[row][col] !== 0) {
+        hideNotes(identifier);
+        Tiles[identifier].noteGrid.visible = false;
+    }
+
+    if (isCorrect) {
+        console.log('Correct!');
+    } else {
+        console.log('Incorrect!');
+        wrongCount++;
+        if (wrongCount === 3) {
+            console.log('Game Over!');
+        }
+        document.getElementById('error-counter').textContent = wrongCount;
+    }
+
+    if (checkSudoku()) {
+        alert('Sudoku is done and correct!');
+    }
+    if (checkCompletedNumber(number)) {
+        // white floor color: 0xffffff
+        Tiles[`n${number}`].floor.material.color.set(0xffffff);
+        Tiles[`n${number}`].textMesh.material.color.set(0x006400);
     }
 }
 
@@ -552,14 +655,38 @@ function addNoteToSelectedTile(number) {
     const row = Math.floor((number - 1) / 3);
     const col = (number - 1) % 3;
     const noteId = `note-${row}-${col}`;
-    console.log(`Adding note: ${number}`);
     const noteElement = Tiles[selectedTile.userData.identifier].noteGridElement.querySelector(`#${noteId}`);
     if (noteElement) {
+        // If the note already has the number, remove it
+        if (noteElement.textContent === number.toString()) {
+            noteElement.textContent = '';
+            return;
+        }
+        noteElement.textContent = number.toString();
+        selectedTile = null;
+    } else {
+        console.log('Note element not found:', noteId);
+    }
+}
+
+function addNoteToTile(identifier, number) {
+
+    const row = Math.floor((number - 1) / 3);
+    const col = (number - 1) % 3;
+    const noteId = `note-${row}-${col}`;
+    const noteElement = Tiles[identifier].noteGridElement.querySelector(`#${noteId}`);
+    if (noteElement) {
+        // If the note already has the number, remove it
+        if (noteElement.textContent === number.toString()) {
+            noteElement.textContent = '';
+            return;
+        }
         noteElement.textContent = number.toString();
     } else {
         console.log('Note element not found:', noteId);
     }
 }
+
 
 function hideNotes(identifier) {
     for (let i = 0; i < 3; i++) {
@@ -593,7 +720,7 @@ function addErrorCounter() {
     errorCounterObject.rotation.x = -Math.PI / 2;
     errorCounterObject.renderOrder = 1;
     css3DScene.add(errorCounterObject);
-    animateErrorCounter(errorCounterObject, 30000, 1.5);
+    animateErrorCounter(errorCounterObject, 30000, 2);
 }
 
 function updateErrorCounterPosition(angle, radius, errorCounterObject) {
@@ -618,6 +745,21 @@ function animateErrorCounter(errorCounterObject, duration, radius) {
         .start();
 }
 
+function checkCompletedNumber(number) {
+    let count = 0;
+    for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+            const identifier = getBlockIdentifier(row, col);
+            if (sudokuGrid[row][col] === number) {
+                count++;
+                if (count === 9) {
+                    return true;
+                }
+            }
+        }
+    }
+}
+
 function checkSudoku() {
     // Loop through the grid
     for (let row = 0; row < 9; row++) {
@@ -639,4 +781,4 @@ function checkSudoku() {
     return true;
 }
 
-export { initSudokuGrid, selectedTile, objects, Tiles, TWEEN, selectTile, resetTile, clearSelectedTile, fillSelectedTile, highlightNumber, resetHighlight,  getBlockIdentifier};
+export { initSudokuGrid, selectedTile, toggle, objects, Tiles, TWEEN, selectTile, resetTile, clearSelectedTile, fillSelectedTile, fillTile, highlightNumber, resetHighlight,  getBlockIdentifier};

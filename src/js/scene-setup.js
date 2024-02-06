@@ -1,11 +1,13 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { MapControls } from 'three/examples/jsm/controls/MapControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { CSS3DRenderer} from 'three/addons/renderers/CSS3DRenderer.js';
 import Stats from 'three/addons/libs/stats.module.js';
 
-let scene, camera, renderer, stats, controls;
+const clock = new THREE.Clock(); 
+let scene, camera, renderer, stats, controls, controlsCSS;
 let css3DScene, css3DRenderer;
+let mapCam = true;
 
 function initScene() {
     
@@ -37,21 +39,26 @@ function initScene() {
 
     // Initialize camera
     camera = new THREE.PerspectiveCamera(70, contentWidth / contentHeight, 0.01, 10);
-    camera.position.y = 1.5;
+    camera.position.y = 2.2;
+    camera.position.z = 0;
+    camera.up.set(0, 1, 0);
     camera.lookAt(0, 0, 0);
-
+    scene.add(camera);
 
     // Initialize controls
-    function initOrbitControls(camera, domElement) {
-        const controls = new OrbitControls(camera, domElement);
-        controls.target.set(0, 0, 0);
-        controls.update();
-        controls.enablePan = true;
-        controls.enableDamping = true;
-    }
 
-    initOrbitControls(camera, renderer.domElement);
-    initOrbitControls(camera, css3DRenderer.domElement);
+    controls = initMapControls(camera, renderer.domElement);
+    controlsCSS = initMapControls(camera, css3DRenderer.domElement);
+
+    controls.update();
+    // controls handler
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'v' || event.key === 'V') {
+            changeControls();
+        }
+    }
+    );
 
     // Resize handler
     window.addEventListener('resize', function () {
@@ -73,14 +80,6 @@ function initScene() {
 
     // Initialize lights
 
-    // ambientLight();
-    // directionalLight(0, 0, 1);
-    // directionalLight(0, 0, -1);
-    // directionalLight(1, 0, 0);
-    // directionalLight(-1, 0, 0);
-    // directionalLight(0, 1, 0);
-    // directionalLight(0, -1, 0);
-    // pontualLight(0, 0, 0);
     pontualLight(0, 1.5, 0);
 
     //stats
@@ -112,4 +111,54 @@ function ambientLight() {
     scene.add(light);
 }
 
-export { initScene, scene, camera, renderer, stats, controls, css3DScene, css3DRenderer };
+function initMapControls(camera, domElement) {
+    // set up controls
+    controls = new MapControls(camera, domElement);
+    controls.enablePan = true;
+
+    // limits
+    controls.minPolarAngle = 0;
+    controls.maxPolarAngle = Math.PI / 2;
+    controls.minAzimuthAngle = -Math.PI / 2;
+    controls.maxAzimuthAngle = Math.PI / 2;
+
+    // configure controls
+    controls.zoomToCursor = true;
+    controls.panSpeed = 0.5;
+    controls.rotateSpeed = 0.5;
+    controls.zoomSpeed = 1.2;
+    controls.minDistance = 0.5;
+    controls.maxDistance = 3;
+    controls.maxTargetRadius = 1.5;
+
+    return controls;
+}
+
+
+function changeControls() {
+    if (mapCam) {
+        // Dispose of OrbitControls
+        controls.dispose();
+        controlsCSS.dispose();
+        
+        // Set camera
+        camera.up.set(0, 0, -1);
+        
+        mapCam = false;
+    } else {
+
+        // set camera
+        camera.position.set(0, 2.2, 0);
+        camera.lookAt(0, 0, 0);
+        camera.up.set(0, 1, 0);
+
+        // Initialize OrbitControls
+        controls = initMapControls(camera, renderer.domElement);
+        controlsCSS = initMapControls(camera, css3DRenderer.domElement);
+
+        mapCam = true;
+    }
+}
+
+
+export { initScene, scene, camera, renderer, stats, controls, controlsCSS, css3DScene, css3DRenderer, mapCam, clock};
